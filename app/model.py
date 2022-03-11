@@ -79,6 +79,7 @@ def update_user(token: str, name: str, leader_card_id: int) -> None:
 
 
 def create_room(token: str, live_id: int, select_difficulty: int) -> int:
+    print("create_roomが呼ばれた")
     with engine.begin() as conn:
         result = conn.execute(
             text(
@@ -86,9 +87,7 @@ def create_room(token: str, live_id: int, select_difficulty: int) -> int:
             ),
             {"live_id": live_id, "joined_user_count": 1, "max_user_count": 4},
         )
-        # print(result)
-        row = result.one()
-    return row[0]
+    return result.lastrowid
 
 
 def list_room(token: str, live_id: int) -> list[RoomInfo]:
