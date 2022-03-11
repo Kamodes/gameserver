@@ -70,3 +70,17 @@ def update_user(token: str, name: str, leader_card_id: int) -> None:
             dict(name=name, leader_card_id=leader_card_id, token=token),
         )
     return None
+
+
+def create_room(token: str, live_id: int, select_difficulty: int) -> int:
+    with engine.begin() as conn:
+        result = conn.execute(
+            text(
+                "INSERT INTO `room` (live_id, joined_user_count, max_user_count) VALUES (:live_id, :joined_user_count, :max_user_count)"
+            ),
+            {"live_id": live_id, "joined_user_count": 1, "max_user_count": 4},
+        )
+        # print(result)
+        row = result.one()
+    return row[0]
+    

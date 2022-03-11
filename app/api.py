@@ -1,4 +1,5 @@
 from enum import Enum
+from select import select
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.security.http import HTTPAuthorizationCredentials, HTTPBearer
@@ -26,6 +27,15 @@ class UserCreateRequest(BaseModel):
 
 
 class UserCreateResponse(BaseModel):
+    user_token: str
+
+
+class RoomCreateRequest(BaseModel):
+    live_id: int
+    select_difficulty: int
+
+
+class RoomCreateResponse(BaseModel):
     user_token: str
 
 
@@ -64,4 +74,12 @@ def update(req: UserCreateRequest, token: str = Depends(get_auth_token)):
     """Update user attributes"""
     # print(req)
     model.update_user(token, req.user_name, req.leader_card_id)
+    return {}
+
+
+@app.post("/room/create", response_model=RoomCreateResponse)
+def room_create(req: RoomCreateRequest, token: str = Depends(get_auth_token)):
+    """Update user attributes"""
+    # print(req)
+    model.create_room(token, req.live_id, req.select_difficulty)
     return {}
