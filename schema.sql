@@ -20,4 +20,6 @@ CREATE TABLE `room` (
 CREATE TABLE `room_member` (
   `id` bigint NOT NULL,
   `live_id` bigint NOT NULL,
+  `select_difficulty` int DEFAULT NULL,
+  PRIMARY KEY (`id`, `live_id`)
 )
