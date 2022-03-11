@@ -25,6 +25,12 @@ class SafeUser(BaseModel):
     class Config:
         orm_mode = True
 
+class RoomInfo(BaseModel):
+    room_id: int
+    live_id: int
+    joined_user_count: int
+    max_user_count: int
+
 
 def create_user(name: str, leader_card_id: int) -> str:
     """Create new user and returns their token"""
@@ -83,4 +89,25 @@ def create_room(token: str, live_id: int, select_difficulty: int) -> int:
         # print(result)
         row = result.one()
     return row[0]
-    
+
+
+def list_room(token: str, live_id: int) -> list[RoomInfo]:
+    if live_id == 0:
+        with engine.begin() as conn:
+            result = conn.execute(
+                text(
+                    "SELECT * FROM `room`"
+                )
+            )
+            row = result.fetchall()
+        return row
+    else:
+        with engine.begin() as conn:
+            result = conn.execute(
+                text(
+                    "SELECT * FROM `room` WHERE live_id = :live_id"
+                ),
+                {"live_id": live_id}
+            )
+            row = result.fetchall()
+        return row

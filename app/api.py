@@ -36,7 +36,7 @@ class RoomCreateRequest(BaseModel):
 
 
 class RoomCreateResponse(BaseModel):
-    user_token: str
+    room_id: int
 
 
 @app.post("/user/create", response_model=UserCreateResponse)
@@ -81,5 +81,5 @@ def update(req: UserCreateRequest, token: str = Depends(get_auth_token)):
 def room_create(req: RoomCreateRequest, token: str = Depends(get_auth_token)):
     """Update user attributes"""
     # print(req)
-    model.create_room(token, req.live_id, req.select_difficulty)
-    return {}
+    room_id = model.create_room(token, req.live_id, req.select_difficulty)
+    return RoomCreateResponse(room_id=room_id)
