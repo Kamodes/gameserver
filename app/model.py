@@ -5,7 +5,7 @@ from typing import Optional
 
 from fastapi import HTTPException
 from pydantic import BaseModel
-from sqlalchemy import text
+from sqlalchemy import null, text
 from sqlalchemy.exc import NoResultFound
 
 from .db import engine
@@ -79,7 +79,6 @@ def update_user(token: str, name: str, leader_card_id: int) -> None:
 
 
 def create_room(token: str, live_id: int, select_difficulty: int) -> int:
-    print("create_roomが呼ばれた")
     with engine.begin() as conn:
         result = conn.execute(
             text(
@@ -110,3 +109,23 @@ def list_room(token: str, live_id: int) -> list[RoomInfo]:
             )
             row = result.fetchall()
         return row
+
+
+def join_room(token: str, room_id: int, select_difficulty: int) -> int:
+    with engine.begin() as conn:
+        result = conn.execute(
+            text(
+                "SELECT * FROM `room` WHERE room_id = :room_id"
+            ),
+            {"room_id": room_id},
+        )
+        row = result.first()
+        if  row is None:
+            return 3
+        limit = row["joined_user_count"]
+        if limit == 4:
+            return 2
+        else:
+            return 1
+    return 4
+
