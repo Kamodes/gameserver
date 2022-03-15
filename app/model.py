@@ -1,4 +1,5 @@
 import json
+from tkinter import INSERT
 import uuid
 from enum import Enum, IntEnum
 from typing import Optional
@@ -120,12 +121,31 @@ def join_room(token: str, room_id: int, select_difficulty: int) -> int:
             {"room_id": room_id},
         )
         row = result.first()
-        if  row is None:
+        if row is None:
             return 3
         limit = row["joined_user_count"]
         if limit == 4:
             return 2
         else:
+            result = conn.execute(
+                text(
+                    "SELECT * FROM `user` WHERE token = :token"
+                ),
+                {"token": token},
+            )
+            row = result.first()
+            user_id = row["id"]
+            result = conn.execute(
+                text(
+                    "INSERT INTO `room_member` (id, room_id, select_difficulty) VALUES (:id, :room_id, :select_difficulty)"
+                ),
+                {"id": user_id, "room_id": room_id, "select_difficulty": select_difficulty},
+            )
+            result = conn.execute(
+                text(
+                    "UPDATE `room` SET joined_user_count = :joined_user_count WHERE `room_id` = :room_id"
+                ),
+                {"joined_user_count": limit + 1, "room_id": room_id},
+            )
             return 1
     return 4
-
