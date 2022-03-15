@@ -6,7 +6,7 @@ from fastapi.security.http import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 
 from . import model
-from .model import RoomInfo, SafeUser, join_room
+from .model import RoomInfo, RoomUser, SafeUser, join_room
 
 app = FastAPI()
 
@@ -54,6 +54,21 @@ class RoomJoinRequest(BaseModel):
 
 class RoomJoinResponse(BaseModel):
     join_room_result: int
+
+
+class RoomWaitRequest(BaseModel):
+    room_id: int
+
+
+class RoomWaitResponse(BaseModel):
+    status: int
+    room_user_list: list[RoomUser]
+
+
+class RoomStartRequest(BaseModel):
+    room_id: int
+
+
 
 
 @app.post("/user/create", response_model=UserCreateResponse)
@@ -117,4 +132,18 @@ def room_join(req: RoomJoinRequest, token: str = Depends(get_auth_token)):
     room_res = model.join_room(token, req.room_id, req.select_difficulty)
     return RoomJoinResponse(join_room_result=room_res)
 
-    
+
+@app.post("/room/wait", response_model=RoomWaitResponse)
+def room_wait(req: RoomWaitRequest, token: str = Depends(get_auth_token)):
+    """Update user attributes"""
+    # print(req)
+    room_res = model.wait_room(token, req.room_id)
+    return RoomWaitResponse(join_room_result=room_res)
+
+
+@app.post("/room/start", response_model=None)
+def room_start(req: RoomStartRequest, token: str = Depends(get_auth_token)):
+    """Update user attributes"""
+    # print(req)
+    room_res = model.start_room(token, req.room_id)
+    return None

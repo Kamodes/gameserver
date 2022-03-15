@@ -26,11 +26,21 @@ class SafeUser(BaseModel):
     class Config:
         orm_mode = True
 
+
 class RoomInfo(BaseModel):
     room_id: int
     live_id: int
     joined_user_count: int
     max_user_count: int
+
+
+class RoomUser(BaseModel):
+    user_id: int
+    name: str
+    leader_card_id: int
+    select_difficulty: int
+    is_me: bool
+    is_host: bool
 
 
 def create_user(name: str, leader_card_id: int) -> str:
@@ -82,12 +92,26 @@ def update_user(token: str, name: str, leader_card_id: int) -> None:
 def create_room(token: str, live_id: int, select_difficulty: int) -> int:
     with engine.begin() as conn:
         result = conn.execute(
+                text(
+                    "SELECT * FROM `user` WHERE token = :token"
+                ),
+                {"token": token},
+            )
+        row = result.first()
+        user_id = row["id"]
+        result = conn.execute(
             text(
-                "INSERT INTO `room` (live_id, joined_user_count, max_user_count) VALUES (:live_id, :joined_user_count, :max_user_count)"
+                "INSERT INTO `room` (live_id, joined_user_count, max_user_count, status) VALUES (:live_id, :joined_user_count, :max_user_count, :status)"
             ),
-            {"live_id": live_id, "joined_user_count": 1, "max_user_count": 4},
+            {"live_id": live_id, "joined_user_count": 1, "max_user_count": 4, "status": 1},
         )
-    return result.lastrowid
+        res = conn.execute(
+            text(
+                "INSERT INTO `room_member` (id, room_id, select_difficulty, is_host) VALUES (:id, :room_id, :select_difficulty, :is_host)"
+            ),
+            {"id": user_id, "room_id": result.lastrowid, "select_difficulty": select_difficulty, "is_host": 1},
+        )
+        return result.lastrowid
 
 
 def list_room(token: str, live_id: int) -> list[RoomInfo]:
@@ -137,9 +161,9 @@ def join_room(token: str, room_id: int, select_difficulty: int) -> int:
             user_id = row["id"]
             result = conn.execute(
                 text(
-                    "INSERT INTO `room_member` (id, room_id, select_difficulty) VALUES (:id, :room_id, :select_difficulty)"
+                    "INSERT INTO `room_member` (id, room_id, select_difficulty, is_host) VALUES (:id, :room_id, :select_difficulty, :is_host)"
                 ),
-                {"id": user_id, "room_id": room_id, "select_difficulty": select_difficulty},
+                {"id": user_id, "room_id": room_id, "select_difficulty": select_difficulty, "is_host": 2},
             )
             result = conn.execute(
                 text(
@@ -149,3 +173,40 @@ def join_room(token: str, room_id: int, select_difficulty: int) -> int:
             )
             return 1
     return 4
+
+
+def wait_room(token: str, room_id: int) -> int:
+    with engine.begin() as conn:
+        res = conn.execute(
+            text(
+                "(SELECT * FROM `room_member` WHERE room_id = :room_id) NATURAL JOIN (SELECT * FROM `user`) "
+            ),
+            {"room_id": room_id}
+        )
+        result = conn.execute(
+            text(
+                "SELECT * FROM `room` WHERE room_id = :room_id"
+            ),
+            {"room_id": room_id},
+        )
+        row = result.first()
+        #解散したroomはmax_join_memberを-1にする
+        #スタートできるroomはmax_join_memberを0にする
+        status = 1
+        if row["max_user_count"] == -1:
+            status = 3
+        elif row["max_user_count"] == 0:
+            status = 2
+        return 1
+        
+
+
+def start_room(token: str, room_id: int) -> None:
+    with engine.begin() as conn:
+        result = conn.execute(
+            text(
+                "UPDATE `room` SET `max_user_count` = :max_user_count WHERE `room_id`=:room_id"
+            ),
+            {"room_id": room_id, "max_user_count": 0}
+        )
+    return None

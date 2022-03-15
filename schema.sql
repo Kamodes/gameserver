@@ -22,5 +22,6 @@ CREATE TABLE `room_member` (
   `id` bigint NOT NULL,
   `room_id` bigint NOT NULL,
   `select_difficulty` int DEFAULT NULL,
+  `is_host` int DEFAULT NULL,
   PRIMARY KEY (`id`, `room_id`)
 );
