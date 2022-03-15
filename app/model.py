@@ -43,6 +43,12 @@ class RoomUser(BaseModel):
     is_host: bool
 
 
+class ResultUser(BaseModel):
+    user_id: int
+    judge_count_list: list[int]
+    score: int
+
+
 def create_user(name: str, leader_card_id: int) -> str:
     """Create new user and returns their token"""
     token = str(uuid.uuid4())
@@ -236,3 +242,35 @@ def end_room(token: str, room_id: int, judge_count_list: list[int], score: int):
                 {"score": score, "room_id": room_id, "id": user_id},
         )
         return None
+
+
+def result_room(token: str, room_id: int):
+    ans: list[ResultUser] = []
+    with engine.begin() as conn:
+        result = conn.execute(
+            text(
+                "SELECT `id` FROM `room_member` WHERE room_id = :room_id"
+            ),
+            {"room_id": room_id},
+        )
+        user_id_list = result.fetchall()
+        print("user_id_list", user_id_list)
+        for user_id in user_id_list:
+            print("userIDは", type(user_id))
+            result = conn.execute(
+                text(
+                    "SELECT judge_count FROM `judge` WHERE id = :id AND room_id = :room_id"
+                ),
+                {"id": user_id, "room_id": room_id},
+            )
+            judge_list = result.fetchall()
+            result = conn.execute(
+                text(
+                    "SELECT `score` FROM `room_member` WHERE id = :id AND room_id = :room_id"
+                ),
+                {"id": user_id, "room_id": room_id},
+            )
+            score = result.first()
+            ans.append(ResultUser(user_id=user_id, judge_count_list=judge_list, score=score))
+        return ans
+
