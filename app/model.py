@@ -101,9 +101,9 @@ def create_room(token: str, live_id: int, select_difficulty: int) -> int:
         user_id = row["id"]
         result = conn.execute(
             text(
-                "INSERT INTO `room` (live_id, joined_user_count, max_user_count, status) VALUES (:live_id, :joined_user_count, :max_user_count, :status)"
+                "INSERT INTO `room` (live_id, joined_user_count, max_user_count) VALUES (:live_id, :joined_user_count, :max_user_count)"
             ),
-            {"live_id": live_id, "joined_user_count": 1, "max_user_count": 4, "status": 1},
+            {"live_id": live_id, "joined_user_count": 1, "max_user_count": 4},
         )
         res = conn.execute(
             text(
@@ -210,3 +210,29 @@ def start_room(token: str, room_id: int) -> None:
             {"room_id": room_id, "max_user_count": 0}
         )
     return None
+
+
+def end_room(token: str, room_id: int, judge_count_list: list[int], score: int):
+    with engine.begin() as conn:
+        result = conn.execute(
+                text(
+                    "SELECT * FROM `user` WHERE token = :token"
+                ),
+                {"token": token},
+            )
+        row = result.first()
+        user_id = row["id"]
+        for judge_count in judge_count_list:
+            res = conn.execute(
+                text(
+                    "INSERT INTO `judge` (`id`, `room_id`, `judge_count`) VALUES (:id, :room_id, :judge_count)"
+                ),
+                {"id": user_id, "room_id": room_id, "judge_count": judge_count},
+            )
+        res = conn.execute(
+            text(
+                    "UPDATE `room_member` SET score = :score WHERE `room_id` = :room_id AND `id` = :id"
+                ),
+                {"score": score, "room_id": room_id, "id": user_id},
+        )
+        return None
